@@ -13,5 +13,5 @@ repository = "https://github.com/akiles/defmt-rtt-target"
 
 [dependencies]
 defmt = "0.3.0"
-cortex-m = "0.7.3"
+riscv = "0.8.0"
 rtt-target = "0.3.1"

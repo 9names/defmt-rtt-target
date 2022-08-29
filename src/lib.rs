@@ -3,7 +3,7 @@
 #![no_std]
 
 use core::sync::atomic::{AtomicBool, Ordering};
-use cortex_m::{interrupt, register};
+use riscv::{interrupt, register::mstatus};
 use rtt_target::UpChannel;
 
 static mut CHANNEL: Option<UpChannel> = None;
@@ -22,8 +22,10 @@ static mut ENCODER: defmt::Encoder = defmt::Encoder::new();
 
 unsafe impl defmt::Logger for Logger {
     fn acquire() {
-        let primask = register::primask::read();
-        interrupt::disable();
+        let interrupt_status = mstatus::read();
+        unsafe {
+            interrupt::disable();
+        }
 
         if TAKEN.load(Ordering::Relaxed) {
             panic!("defmt logger taken reentrantly")
@@ -32,7 +34,7 @@ unsafe impl defmt::Logger for Logger {
         // no need for CAS because interrupts are disabled
         TAKEN.store(true, Ordering::Relaxed);
 
-        INTERRUPTS_ACTIVE.store(primask.is_active(), Ordering::Relaxed);
+        INTERRUPTS_ACTIVE.store(interrupt_status.mie(), Ordering::Relaxed);
 
         // safety: accessing the `static mut` is OK because we have disabled interrupts.
         unsafe { ENCODER.start_frame(do_write) }
